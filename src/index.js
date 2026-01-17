@@ -32,6 +32,24 @@ async function autoSave() {
 // Inicializar torneos
 await initializeTournaments();
 
+// Configurar comandos del bot
+await bot.setMyCommands([
+  { command: 'start', description: 'Ver información del bot' },
+  { command: 'chatid', description: 'Ver el ID de este chat' },
+  { command: 'nuevotorneo', description: 'Crear un nuevo torneo' },
+  { command: 'inscribirse', description: 'Inscribirse en el torneo' },
+  { command: 'borrarse', description: 'Borrarse del torneo' },
+  { command: 'lista', description: 'Ver lista de inscritos' },
+  { command: 'sortear', description: 'Sortear emparejamientos' },
+  { command: 'resultado', description: 'Registrar resultado de partida' },
+  { command: 'clasificacion', description: 'Ver clasificación actual' },
+  { command: 'partidaspendientes', description: 'Ver partidas pendientes' },
+  { command: 'exportar', description: 'Exportar torneo a JSON' },
+  { command: 'importar', description: 'Importar torneo desde JSON' },
+  { command: 'borrar', description: 'Borrar el torneo actual' },
+  { command: 'ayuda', description: 'Ver ayuda detallada' }
+]);
+
 console.log('🤖 Bot de torneos de ajedrez iniciado...');
 
 /**

@@ -1,3 +1,3 @@
 #!/bin/bash
 cd "$(dirname "$0")"
-node src/index.js
+node index.js

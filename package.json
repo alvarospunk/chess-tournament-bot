@@ -2,11 +2,11 @@
   "name": "chess-tournament-bot",
   "version": "1.0.0",
   "description": "Bot de Telegram para organizar torneos de ajedrez",
-  "main": "index.js",
+  "main": "index.ts",
   "type": "module",
   "scripts": {
-    "start": "node index.js",
-    "dev": "node --watch index.js"
+    "start": "ts-node --esm index.ts",
+    "dev": "ts-node --esm --watch index.ts"
   },
   "keywords": ["telegram", "bot", "chess", "tournament"],
   "author": "",

@@ -35,19 +35,15 @@ await initializeTournaments();
 // Configurar comandos del bot
 await bot.setMyCommands([
   { command: 'start', description: 'Ver información del bot' },
+  { command: 'ayuda', description: 'Guía de uso del bot' },
   { command: 'chatid', description: 'Ver el ID de este chat' },
-  { command: 'nuevotorneo', description: 'Crear un nuevo torneo' },
-  { command: 'inscribirse', description: 'Inscribirse en el torneo' },
-  { command: 'borrarse', description: 'Borrarse del torneo' },
-  { command: 'lista', description: 'Ver lista de inscritos' },
-  { command: 'sortear', description: 'Sortear emparejamientos' },
-  { command: 'resultado', description: 'Registrar resultado de partida' },
-  { command: 'clasificacion', description: 'Ver clasificación actual' },
-  { command: 'partidaspendientes', description: 'Ver partidas pendientes' },
-  { command: 'exportar', description: 'Exportar torneo a JSON' },
-  { command: 'importar', description: 'Importar torneo desde JSON' },
-  { command: 'borrar', description: 'Borrar el torneo actual' },
-  { command: 'ayuda', description: 'Ver ayuda detallada' }
+  { command: 'nuevo_torneo', description: 'Crear un nuevo torneo' },
+  { command: 'clasificacion', description: 'Ver tabla de posiciones' },
+  { command: 'todas_jornadas', description: 'Historial completo de partidos' },
+  { command: 'ultima_jornada', description: 'Resultados de la última jornada' },
+  { command: 'jornada_actual', description: 'Partidos pendientes actuales' },
+  { command: 'proximas_jornadas', description: 'Calendario de próximos partidos' },
+  { command: 'registrar_resultado', description: 'Registrar resultado de partido' }
 ]);
 
 console.log('🤖 Bot de torneos de ajedrez iniciado...');

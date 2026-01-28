@@ -107,7 +107,7 @@
           "id": 3,
           "name": "Donas"
         },
-        "result": null,
+        "result": "0-1",
         "phase": "group_stage"
       },
       {
@@ -125,7 +125,56 @@
         "phase": "group_stage"
       }
     ],
-    "eliminationMatches": [],
+    "eliminationMatches": [
+      {
+        "id": 7,
+        "round": "semifinals",
+        "player1": {
+          "id": 4,
+          "name": "Alberto",
+          "points": 9,
+          "matchesPlayed": 3,
+          "wins": 3,
+          "draws": 0,
+          "losses": 0
+        },
+        "player2": {
+          "id": 1,
+          "name": "Jorge",
+          "points": 0,
+          "matchesPlayed": 3,
+          "wins": 0,
+          "draws": 0,
+          "losses": 3
+        },
+        "result": null,
+        "phase": "elimination"
+      },
+      {
+        "id": 8,
+        "round": "semifinals",
+        "player1": {
+          "id": 2,
+          "name": "Álvaro",
+          "points": 6,
+          "matchesPlayed": 3,
+          "wins": 2,
+          "draws": 0,
+          "losses": 1
+        },
+        "player2": {
+          "id": 3,
+          "name": "Donas",
+          "points": 3,
+          "matchesPlayed": 3,
+          "wins": 1,
+          "draws": 0,
+          "losses": 2
+        },
+        "result": null,
+        "phase": "elimination"
+      }
+    ],
     "standings": [
       [
         1,
@@ -133,10 +182,10 @@
           "id": 1,
           "name": "Jorge",
           "points": 0,
-          "matchesPlayed": 2,
+          "matchesPlayed": 3,
           "wins": 0,
           "draws": 0,
-          "losses": 2
+          "losses": 3
         }
       ],
       [
@@ -156,9 +205,9 @@
         {
           "id": 3,
           "name": "Donas",
-          "points": 0,
-          "matchesPlayed": 2,
-          "wins": 0,
+          "points": 3,
+          "matchesPlayed": 3,
+          "wins": 1,
           "draws": 0,
           "losses": 2
         }
@@ -176,7 +225,7 @@
         }
       ]
     ],
-    "currentPhase": "group_stage",
+    "currentPhase": "elimination",
     "currentRound": 3,
     "matchResults": [
       [
@@ -197,6 +246,10 @@
       ],
       [
         6,
+        "0-1"
+      ],
+      [
+        5,
         "0-1"
       ]
     ]

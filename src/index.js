@@ -8,6 +8,11 @@ dotenv.config();
 const token = process.env.TELEGRAM_BOT_TOKEN;
 const bot = new TelegramBot(token, { polling: true });
 
+// Función para escapar caracteres especiales de Markdown
+function escapeMarkdown(text) {
+  return text.replace(/([_*\[\]()~`>#+\-=|{}.!])/g, '\\$1');
+}
+
 // Almacenar torneos activos por chat
 let tournaments = new Map();
 const userStates = new Map();
@@ -158,7 +163,7 @@ bot.onText(/\/clasificacion/, (msg) => {
   
   standings.forEach((player, index) => {
     const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`;
-    message += `${medal} *${player.name}*\n`;
+    message += `${medal} *${escapeMarkdown(player.name)}*\n`;
     message += `   Puntos: ${player.points} | PJ: ${player.matchesPlayed} | `;
     message += `V: ${player.wins} | E: ${player.draws} | D: ${player.losses}\n\n`;
   });
@@ -195,7 +200,7 @@ bot.onText(/\/todas_jornadas/, (msg) => {
         message += `*Jornada ${r}*\n`;
         matches.forEach(match => {
           const result = match.result || 'Pendiente';
-          message += `  ${match.id}. ${match.player1.name} vs ${match.player2.name} - ${result}\n`;
+          message += `  ${match.id}. ${escapeMarkdown(match.player1.name)} vs ${escapeMarkdown(match.player2.name)} - ${result}\n`;
         });
         message += '\n';
       }
@@ -211,7 +216,7 @@ bot.onText(/\/todas_jornadas/, (msg) => {
       message += '*Semifinales*\n';
       semifinals.forEach(match => {
         const result = match.result || 'Pendiente';
-        message += `  ${match.id}. ${match.player1.name} vs ${match.player2.name} - ${result}\n`;
+        message += `  ${match.id}. ${escapeMarkdown(match.player1.name)} vs ${escapeMarkdown(match.player2.name)} - ${result}\n`;
       });
       message += '\n';
     }
@@ -220,14 +225,14 @@ bot.onText(/\/todas_jornadas/, (msg) => {
     if (thirdPlace) {
       message += '*Tercer puesto*\n';
       const result = thirdPlace.result || 'Pendiente';
-      message += `  ${thirdPlace.id}. ${thirdPlace.player1.name} vs ${thirdPlace.player2.name} - ${result}\n\n`;
+      message += `  ${thirdPlace.id}. ${escapeMarkdown(thirdPlace.player1.name)} vs ${escapeMarkdown(thirdPlace.player2.name)} - ${result}\n\n`;
     }
 
     const final = tournament.eliminationMatches.find(m => m.round === 'final');
     if (final) {
       message += '*🏆 FINAL*\n';
       const result = final.result || 'Pendiente';
-      message += `  ${final.id}. ${final.player1.name} vs ${final.player2.name} - ${result}\n`;
+      message += `  ${final.id}. ${escapeMarkdown(final.player1.name)} vs ${escapeMarkdown(final.player2.name)} - ${result}\n`;
     }
   }
 
@@ -268,7 +273,7 @@ bot.onText(/\/ultima_jornada/, (msg) => {
   }
 
   lastRound.matches.forEach(match => {
-    message += `${match.id}. ${match.player1.name} vs ${match.player2.name} - ${match.result}\n`;
+    message += `${match.id}. ${escapeMarkdown(match.player1.name)} vs ${escapeMarkdown(match.player2.name)} - ${match.result}\n`;
   });
 
   bot.sendMessage(chatId, message, { parse_mode: 'Markdown' });
@@ -303,7 +308,7 @@ bot.onText(/\/jornada_actual/, (msg) => {
 
   currentMatches.forEach(match => {
     const status = match.result ? `✅ ${match.result}` : '⏳ Pendiente';
-    message += `${match.id}. ${match.player1.name} vs ${match.player2.name} - ${status}\n`;
+    message += `${match.id}. ${escapeMarkdown(match.player1.name)} vs ${escapeMarkdown(match.player2.name)} - ${status}\n`;
   });
 
   bot.sendMessage(chatId, message, { parse_mode: 'Markdown' });
@@ -339,7 +344,7 @@ bot.onText(/\/proximas_jornadas/, (msg) => {
     upcoming.forEach(roundData => {
       message += `*Jornada ${roundData.round}*\n`;
       roundData.matches.forEach(match => {
-        message += `  ${match.id}. ${match.player1.name} vs ${match.player2.name}\n`;
+        message += `  ${match.id}. ${escapeMarkdown(match.player1.name)} vs ${escapeMarkdown(match.player2.name)}\n`;
       });
       message += '\n';
     });
@@ -350,7 +355,7 @@ bot.onText(/\/proximas_jornadas/, (msg) => {
       const roundName = match.round === 'semifinals' ? 'Semifinal' : 
                        match.round === 'final' ? 'Final' : 
                        match.round === 'third_place' ? 'Tercer puesto' : match.round;
-      message += `${match.id}. ${roundName}: ${match.player1.name} vs ${match.player2.name}\n`;
+      message += `${match.id}. ${roundName}: ${escapeMarkdown(match.player1.name)} vs ${escapeMarkdown(match.player2.name)}\n`;
     });
   }
 
@@ -462,7 +467,7 @@ bot.on('message', async (msg) => {
       await autoSave();
 
       let message = '✅ *Resultado registrado*\n\n';
-      message += `${match.player1.name} vs ${match.player2.name}\n`;
+      message += `${escapeMarkdown(match.player1.name)} vs ${escapeMarkdown(match.player2.name)}\n`;
       message += `Resultado: ${result}\n\n`;
 
       // Verificar si se completó la fase de grupos
@@ -474,7 +479,7 @@ bot.on('message', async (msg) => {
         message += '*Clasificados:*\n';
         const qualified = standings.slice(0, Math.min(8, standings.length));
         qualified.forEach((p, i) => {
-          message += `${i + 1}. ${p.name} (${p.points} pts)\n`;
+          message += `${i + 1}. ${escapeMarkdown(p.name)} (${p.points} pts)\n`;
         });
 
         message += '\nUsa /proximas_jornadas para ver las semifinales.';

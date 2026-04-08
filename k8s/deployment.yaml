@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chess-tournament-bot
+  namespace: chess-tournament
+  labels:
+    app: chess-tournament-bot
+spec:
+  replicas: 1  # Solo 1 réplica: Telegram polling no soporta múltiples instancias
+  strategy:
+    type: Recreate  # Evitar que dos pods corran a la vez (409 Conflict)
+  selector:
+    matchLabels:
+      app: chess-tournament-bot
+  template:
+    metadata:
+      labels:
+        app: chess-tournament-bot
+    spec:
+      containers:
+        - name: bot
+          image: chess-tournament-bot:latest
+          imagePullPolicy: Never  # Usar imagen local importada en k3d
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "128Mi"
+              cpu: "200m"
+          env:
+            - name: TELEGRAM_BOT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: chess-tournament-bot-secret
+                  key: TELEGRAM_BOT_TOKEN
+          volumeMounts:
+            - name: data
+              mountPath: /app/data
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: chess-tournament-bot-data

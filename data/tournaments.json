@@ -171,7 +171,7 @@
           "draws": 0,
           "losses": 2
         },
-        "result": null,
+        "result": "0-1",
         "phase": "elimination"
       }
     ],
@@ -194,10 +194,10 @@
           "id": 2,
           "name": "Álvaro",
           "points": 6,
-          "matchesPlayed": 3,
+          "matchesPlayed": 4,
           "wins": 2,
           "draws": 0,
-          "losses": 1
+          "losses": 2
         }
       ],
       [
@@ -205,9 +205,9 @@
         {
           "id": 3,
           "name": "Donas",
-          "points": 3,
-          "matchesPlayed": 3,
-          "wins": 1,
+          "points": 6,
+          "matchesPlayed": 4,
+          "wins": 2,
           "draws": 0,
           "losses": 2
         }
@@ -250,6 +250,10 @@
       ],
       [
         5,
+        "0-1"
+      ],
+      [
+        8,
         "0-1"
       ]
     ]

@@ -37,6 +37,43 @@ async function autoSave() {
 // Inicializar torneos
 await initializeTournaments();
 
+// Recordatorios automáticos para partidos pendientes
+const REMINDER_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 horas
+
+const reminderMessages = [
+  (p1, p2) => `¡Vengaaa embreee cawen la ustiaaa! ¿Es que no vais a jugar nunca ${p1} vs ${p2}? 😤`,
+  (p1, p2) => `Ey, ${p1} y ${p2}... ¿os habéis muerto o qué? JUGAD EL PARTIDO 🪦`,
+  (p1, p2) => `Recordatorio número no sé cuántos: ${p1} vs ${p2} ESTÁ SIN JUGAR. Lo digo por si se os había olvidado, que parece que sí 🙃`,
+  (p1, p2) => `${p1}, ${p2}... el tablero os espera. Las piezas os esperan. YO os espero. JUGAD 🤌`,
+  (p1, p2) => `Buenos días/tardes/noches. Siguen sin jugar ${p1} vs ${p2}. Un saludo 👋`,
+  (p1, p2) => `Oiga, perdone usted, ¿cuándo tiene pensado jugar contra ${p2}? Le pregunto a usted, ${p1}, sí. Y a ti también ${p2} 🧐`,
+  (p1, p2) => `ALERTA ♟️ El partido ${p1} vs ${p2} lleva más tiempo pendiente que la reforma laboral. PONEOS 💪`,
+  (p1, p2) => `${p1} y ${p2} comportaos. Jugad el partido. Gracias. Atentamente, el bot 🤖`,
+];
+
+function startReminders() {
+  setInterval(() => {
+    for (const [chatId, tournament] of tournaments.entries()) {
+      if (tournament.currentPhase === 'finished') continue;
+
+      const currentMatches = tournament.getCurrentRoundMatches();
+      const pendingMatches = currentMatches.filter(m => !m.result);
+
+      if (pendingMatches.length === 0) continue;
+
+      // Elegir un partido pendiente al azar
+      const match = pendingMatches[Math.floor(Math.random() * pendingMatches.length)];
+      // Elegir un mensaje al azar
+      const msgFn = reminderMessages[Math.floor(Math.random() * reminderMessages.length)];
+      const text = msgFn(match.player1.name, match.player2.name);
+
+      bot.sendMessage(chatId, text).catch(err => console.error('Error enviando recordatorio:', err));
+    }
+  }, REMINDER_INTERVAL_MS);
+}
+
+startReminders();
+
 // Configurar comandos del bot
 await bot.setMyCommands([
   { command: 'start', description: 'Ver información del bot' },
@@ -48,7 +85,9 @@ await bot.setMyCommands([
   { command: 'ultima_jornada', description: 'Resultados de la última jornada' },
   { command: 'jornada_actual', description: 'Partidos pendientes actuales' },
   { command: 'proximas_jornadas', description: 'Calendario de próximos partidos' },
-  { command: 'registrar_resultado', description: 'Registrar resultado de partido' }
+  { command: 'registrar_resultado', description: 'Registrar resultado de partido' },
+  { command: 'listar_torneos', description: 'Ver todos los torneos activos (privado)' },
+  { command: 'enviar_mensaje', description: 'Enviar un mensaje a un torneo' }
 ]);
 
 console.log('🤖 Bot de torneos de ajedrez iniciado...');
@@ -301,14 +340,26 @@ bot.onText(/\/jornada_actual/, (msg) => {
   let message = '▶️ *JORNADA ACTUAL*\n\n';
 
   if (tournament.currentPhase === 'group_stage') {
-    message += `*Jornada ${tournament.currentRound}*\n`;
+    message += `*Fase liguilla \\- Jornada ${tournament.currentRound}*\n`;
   } else if (tournament.currentPhase === 'elimination') {
-    message += '*Fase eliminatoria*\n';
+    const round = currentMatches[0]?.round;
+    const totalPlayers = tournament.players.length;
+    let roundName;
+    if (round === 'final' || round === 'third_place') {
+      roundName = 'Final y 3er\\-4º puesto';
+    } else if (round === 'semifinals') {
+      roundName = 'Semifinales';
+    } else if (round === 'quarterfinals' || (round === 'semifinals' && totalPlayers > 4)) {
+      roundName = 'Cuartos de final';
+    } else {
+      roundName = 'Fase eliminatoria';
+    }
+    message += `*${roundName}*\n`;
   }
 
   currentMatches.forEach(match => {
     const status = match.result ? `✅ ${match.result}` : '⏳ Pendiente';
-    message += `${match.id}. ${escapeMarkdown(match.player1.name)} vs ${escapeMarkdown(match.player2.name)} - ${status}\n`;
+    message += `${match.id}\\. ${escapeMarkdown(match.player1.name)} vs ${escapeMarkdown(match.player2.name)} \\- ${status}\n`;
   });
 
   bot.sendMessage(chatId, message, { parse_mode: 'Markdown' });
@@ -339,8 +390,8 @@ bot.onText(/\/proximas_jornadas/, (msg) => {
 
   let message = '⏭️ *PRÓXIMAS JORNADAS*\n\n';
 
-  if (Array.isArray(upcoming) && upcoming[0] && upcoming[0].round) {
-    // Jornadas de fase de grupos
+  if (Array.isArray(upcoming) && upcoming[0] && upcoming[0].matches) {
+    // Jornadas de fase de grupos (objetos con { round, matches })
     upcoming.forEach(roundData => {
       message += `*Jornada ${roundData.round}*\n`;
       roundData.matches.forEach(match => {
@@ -349,7 +400,7 @@ bot.onText(/\/proximas_jornadas/, (msg) => {
       message += '\n';
     });
   } else {
-    // Fase eliminatoria
+    // Fase eliminatoria (array de partidos directamente)
     message += '*Fase eliminatoria*\n';
     upcoming.forEach(match => {
       const roundName = match.round === 'semifinals' ? 'Semifinal' : 
@@ -359,6 +410,56 @@ bot.onText(/\/proximas_jornadas/, (msg) => {
     });
   }
 
+  bot.sendMessage(chatId, message, { parse_mode: 'Markdown' });
+});
+
+/**
+ * Comando /listar_torneos
+ */
+bot.onText(/\/listar_torneos/, (msg) => {
+  const chatId = msg.chat.id;
+
+  if (tournaments.size === 0) {
+    bot.sendMessage(chatId, '❌ No hay ningún torneo activo.');
+    return;
+  }
+
+  let message = '📋 *Torneos activos*\n\n';
+  let i = 1;
+  for (const [tournamentChatId, tournament] of tournaments.entries()) {
+    const phase = tournament.currentPhase === 'group_stage' ? 'Fase de grupos' :
+                  tournament.currentPhase === 'elimination' ? 'Semifinales' :
+                  tournament.currentPhase === 'finished' ? 'Finalizado' : tournament.currentPhase;
+    message += `${i}\. *${escapeMarkdown(tournament.name)}*\n`;
+    message += `   Chat ID: \`${tournamentChatId}\`\n`;
+    message += `   Fase: ${escapeMarkdown(phase)}\n\n`;
+    i++;
+  }
+
+  bot.sendMessage(chatId, message, { parse_mode: 'Markdown' });
+});
+
+/**
+ * Comando /enviar_mensaje
+ */
+bot.onText(/\/enviar_mensaje/, (msg) => {
+  const chatId = msg.chat.id;
+
+  if (tournaments.size === 0) {
+    bot.sendMessage(chatId, '❌ No hay ningún torneo activo.');
+    return;
+  }
+
+  let message = '📨 *Enviar mensaje a un torneo*\n\nElige el torneo (responde con el número):\n\n';
+  const tournamentList = [];
+  let i = 1;
+  for (const [tournamentChatId, tournament] of tournaments.entries()) {
+    message += `${i}\. ${escapeMarkdown(tournament.name)} \(Chat: \`${tournamentChatId}\`\)\n`;
+    tournamentList.push(tournamentChatId);
+    i++;
+  }
+
+  userStates.set(chatId, { action: 'awaiting_tournament_target', tournamentList });
   bot.sendMessage(chatId, message, { parse_mode: 'Markdown' });
 });
 
@@ -376,16 +477,28 @@ bot.onText(/\/registrar_resultado/, (msg) => {
 
   userStates.set(chatId, { action: 'awaiting_result' });
 
-  bot.sendMessage(chatId,
-    '📝 *Registrar resultado*\n\n' +
-    'Envía el ID del partido y el resultado separados por un espacio.\n\n' +
-    'Ejemplo: `5 1-0`\n\n' +
-    'Resultados válidos:\n' +
-    '• `1-0` - Gana el primer jugador\n' +
-    '• `0-1` - Gana el segundo jugador\n' +
-    '• `0.5-0.5` - Empate',
-    { parse_mode: 'Markdown' }
-  );
+  // Obtener partidos pendientes
+  const currentMatches = tournament.getCurrentRoundMatches();
+  const pendingMatches = currentMatches.filter(match => !match.result);
+
+  let message = '📝 *Registrar resultado*\n\n';
+  
+  if (pendingMatches.length > 0) {
+    message += '*Partidos pendientes:*\n';
+    pendingMatches.forEach(match => {
+      message += `${match.id}\\. ${escapeMarkdown(match.player1.name)} vs ${escapeMarkdown(match.player2.name)}\n`;
+    });
+    message += '\n';
+  }
+
+  message += 'Envía el ID del partido y el resultado separados por un espacio\\.\n\n';
+  message += 'Ejemplo: `5 1\\-0`\n\n';
+  message += 'Resultados válidos:\n';
+  message += '• `1\\-0` \\- Gana el primer jugador\n';
+  message += '• `0\\-1` \\- Gana el segundo jugador\n';
+  message += '• `0\\.5\\-0\\.5` \\- Empate';
+
+  bot.sendMessage(chatId, message, { parse_mode: 'Markdown' });
 });
 
 /**
@@ -433,6 +546,37 @@ bot.on('message', async (msg) => {
     message += 'Usa /jornada_actual para ver los partidos de la primera jornada.';
 
     bot.sendMessage(chatId, message, { parse_mode: 'Markdown' });
+
+  } else if (state.action === 'awaiting_tournament_target') {
+    const index = parseInt(text.trim()) - 1;
+    const { tournamentList } = state;
+
+    if (isNaN(index) || index < 0 || index >= tournamentList.length) {
+      bot.sendMessage(chatId, '❌ Número inválido. Inténtalo de nuevo con /enviar_mensaje.');
+      userStates.delete(chatId);
+      return;
+    }
+
+    const targetChatId = tournamentList[index];
+    const tournament = tournaments.get(targetChatId);
+    userStates.set(chatId, { action: 'awaiting_broadcast_message', targetChatId, tournamentName: tournament.name });
+
+    bot.sendMessage(chatId,
+      `✏️ Escribe el mensaje que quieres enviar al torneo *${escapeMarkdown(tournament.name)}*:`,
+      { parse_mode: 'Markdown' }
+    );
+
+  } else if (state.action === 'awaiting_broadcast_message') {
+    const { targetChatId, tournamentName } = state;
+    userStates.delete(chatId);
+
+    bot.sendMessage(targetChatId, text)
+      .then(() => {
+        bot.sendMessage(chatId, `✅ Mensaje enviado al torneo *${escapeMarkdown(tournamentName)}*`, { parse_mode: 'Markdown' });
+      })
+      .catch(err => {
+        bot.sendMessage(chatId, `❌ Error al enviar el mensaje: ${err.message}`);
+      });
 
   } else if (state.action === 'awaiting_result') {
     // Registrar resultado

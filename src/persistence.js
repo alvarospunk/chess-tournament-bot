@@ -159,7 +159,17 @@ export function restoreTournaments(data) {
         if (this.currentPhase === 'group_stage') {
           return this.getRoundMatches(this.currentRound);
         } else if (this.currentPhase === 'elimination') {
-          return this.eliminationMatches.filter(m => m.result === null);
+          // Buscar la primera ronda con partidos pendientes
+          const pendingMatch = this.eliminationMatches.find(m => m.result === null);
+          if (pendingMatch) {
+            // Devolver todos los partidos de esa ronda (pendientes y completados)
+            return this.eliminationMatches.filter(m => m.round === pendingMatch.round);
+          }
+          // Si no hay pendientes, devolver la última ronda jugada
+          if (this.eliminationMatches.length > 0) {
+            const lastRound = this.eliminationMatches[this.eliminationMatches.length - 1].round;
+            return this.eliminationMatches.filter(m => m.round === lastRound);
+          }
         }
         return [];
       },

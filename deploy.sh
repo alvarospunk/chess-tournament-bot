@@ -1,4 +1,17 @@
 #!/bin/bash
+# deploy.sh — Construye la imagen del bot y la despliega en el cluster telegram-bots.
+#
+# Requisitos previos:
+#   - El cluster k3d 'telegram-bots' y la infra base (LocalStack + ESO) deben estar
+#     corriendo. Si es la primera vez, levántalos desde el repo k8s-home-cluster:
+#       git clone https://github.com/alvarospunk/k8s-home-cluster.git
+#       cd k8s-home-cluster && ./bootstrap.sh
+#
+#   - El secret del bot debe existir en LocalStack:
+#       aws --endpoint-url=http://localhost:4566 secretsmanager create-secret \
+#           --name chess-tournament-bot/telegram-token \
+#           --secret-string '{"TELEGRAM_BOT_TOKEN":"TU_TOKEN"}'
+
 set -e
 
 CLUSTER_NAME="telegram-bots"
@@ -9,18 +22,20 @@ IMAGE_TAG="latest"
 echo "🔧 Chess Tournament Bot - Deploy to k3d"
 echo "========================================="
 
-# 1. Verificar que k3d está instalado
-if ! command -v k3d &> /dev/null; then
-  echo "❌ k3d no está instalado. Ejecuta: brew install k3d"
-  exit 1
-fi
+# 1. Verificar dependencias
+for cmd in k3d kubectl docker; do
+  if ! command -v "$cmd" &> /dev/null; then
+    echo "❌ '$cmd' no está instalado. Ejecuta: brew install $cmd"
+    exit 1
+  fi
+done
 
-# 2. Crear cluster si no existe
+# 2. Verificar que el cluster existe
 if ! k3d cluster list | grep -q "$CLUSTER_NAME"; then
-  echo "🚀 Creando cluster k3d '$CLUSTER_NAME'..."
-  k3d cluster create --config k3d-config.yaml
-else
-  echo "✅ Cluster '$CLUSTER_NAME' ya existe"
+  echo "❌ Cluster '$CLUSTER_NAME' no encontrado."
+  echo "   Levanta la infra base primero:"
+  echo "   cd ../k8s-home-cluster && ./bootstrap.sh"
+  exit 1
 fi
 
 # 3. Apuntar kubectl al cluster
@@ -35,27 +50,11 @@ docker build -t "${IMAGE_NAME}:${IMAGE_TAG}" .
 echo "📦 Importando imagen al cluster..."
 k3d image import "${IMAGE_NAME}:${IMAGE_TAG}" -c "$CLUSTER_NAME"
 
-# 6. Aplicar manifiestos de Kubernetes
+# 6. Aplicar manifiestos del bot
 echo "☸️  Aplicando manifiestos..."
 kubectl apply -f k8s/namespace.yaml
-
-# Verificar que el secret existe
-if ! kubectl get secret chess-tournament-bot-secret -n "$NAMESPACE" &> /dev/null; then
-  if [ -f k8s/secret.yaml ]; then
-    kubectl apply -f k8s/secret.yaml
-  else
-    echo ""
-    echo "⚠️  No se encontró k8s/secret.yaml"
-    echo "   Crea el secret manualmente:"
-    echo "   cp k8s/secret.yaml.example k8s/secret.yaml"
-    echo "   Edita k8s/secret.yaml con tu token en base64:"
-    echo "   echo -n 'TU_TOKEN' | base64"
-    echo ""
-    exit 1
-  fi
-fi
-
 kubectl apply -f k8s/pvc.yaml
+kubectl apply -f k8s/external-secret.yaml  # SecretStore + ExternalSecret → crea el Secret via ESO
 kubectl apply -f k8s/deployment.yaml
 
 # 7. Esperar a que el pod esté listo
@@ -66,6 +65,7 @@ echo ""
 echo "✅ ¡Bot desplegado correctamente!"
 echo ""
 echo "📋 Comandos útiles:"
-echo "   kubectl logs -f deployment/chess-tournament-bot -n $NAMESPACE    # Ver logs"
-echo "   kubectl get pods -n $NAMESPACE                                   # Ver pods"
-echo "   kubectl rollout restart deployment/chess-tournament-bot -n $NAMESPACE  # Reiniciar"
+echo "   kubectl logs -f deployment/chess-tournament-bot -n $NAMESPACE"
+echo "   kubectl get pods -n $NAMESPACE"
+echo "   kubectl get externalsecret -n $NAMESPACE"
+echo "   kubectl rollout restart deployment/chess-tournament-bot -n $NAMESPACE"
